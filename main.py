@@ -1,32 +1,45 @@
 import requests
 from bs4 import BeautifulSoup
 import csv
+import math
 
 #Initate CSV file
 en_tete = ["product_page_url", "title", "category", "review_rating", "image_url", "product_description", "universal_ product_code (upc)", "price_excluding_tax", "price_including_tax", "number_available"]
 
-with open('data.csv', 'w') as fichier_csv:
+with open('data.csv', 'w', newline='', encoding='utf-8') as fichier_csv:
    writer = csv.writer(fichier_csv, delimiter=';')
    writer.writerow(en_tete)
 
 #Initiate lists
 links = []
+urlCategory = []
+data = []
 
 #Initiate BeautifulSoup
-#url = "http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
-url = "https://books.toscrape.com/catalogue/category/books/sequential-art_5/page-1.html"
+url = "https://books.toscrape.com/catalogue/category/books/sequential-art_5/"
 urlCatalog = "https://books.toscrape.com/catalogue"
 urlSite = "https://books.toscrape.com"
-page = requests.get(url)
-soup = BeautifulSoup(page.content, 'html.parser')
+request = requests.get(url + "index.html")
+soup = BeautifulSoup(request.content, 'html.parser')
+
+#Obtain category's page number
+nbPage = soup.find("form", class_="form-horizontal").next_element.next_element.next_element.next_element.next_element.string
+nbPage = math.ceil(int(nbPage) / 20.0)
+
+while nbPage != 0:
+   urlCategory.append(url + f"page-{nbPage}.html")
+   nbPage = nbPage - 1
 
 #Obtain book's page link
-books = soup.find_all("h3")
-for book in books:
-   cutLink = book.next_element["href"].replace("../../..", "")
-   links.append(urlCatalog + cutLink)
 
-print(links)
+for page in urlCategory:
+   request = requests.get(page)
+   soup = BeautifulSoup(request.content, 'html.parser')
+   books = soup.find_all("h3")
+
+   for book in books:
+      cutLink = book.next_element["href"].replace("../../..", "")
+      links.append(urlCatalog + cutLink)
 
 for link in links:
    #Initate BeautifulSoup for loop
@@ -69,8 +82,10 @@ for link in links:
    tableau.append(table[3].string)
    tableau.append(table[5].string)
 
-   print(tableau)
+   # Add tableau in data list
+   data.append(tableau)
 
-   with open('data.csv', 'a') as fichier_csv:
-      writer = csv.writer(fichier_csv, delimiter=';')
-      writer.writerow(tableau)
+with open('data.csv', 'a', newline='', encoding='utf-8') as fichier_csv:
+   writer = csv.writer(fichier_csv, delimiter=';')
+   for row in data:
+      writer.writerow(row)
