@@ -5,47 +5,33 @@ import math
 
 #Initiate lists
 links = []
-urlCategory = []
 data = []
-categoryList = []
+pageHome = []
 
 #Initiate BeautifulSoup
-urlSite = "https://books.toscrape.com/"
-urlCatalog = "https://books.toscrape.com/catalogue"
+urlSite = "https://books.toscrape.com/index.html"
+urlCatalog = "https://books.toscrape.com/catalogue/"
 request = requests.get(urlSite)
 soup = BeautifulSoup(request.content, 'html.parser')
 
-# Obtain category's links
-ulNavList = soup.find("ul", class_="nav-list").find_all("a")
-for category in ulNavList:
-    categoryList.append(urlSite + category.get("href"))
+# Obtain category's page number
+nbPage = soup.find("form", class_="form-horizontal").next_element.next_element.next_element.next_element.next_element.string
+nbPage = math.ceil(int(nbPage) / 20.0)
 
-categoryList.pop(0)
+while nbPage != 0:
+    pageHome.append(urlCatalog + f"page-{nbPage}.html")
+    nbPage = nbPage - 1
 
-for categoryPage in categoryList:
-    request = requests.get(categoryPage)
-    soup = BeautifulSoup(request.content, 'html.parser')
-
-    # Obtain category's page number
-    nbPage = soup.find("form", class_="form-horizontal").next_element.next_element.next_element.next_element.next_element.string
-    nbPage = math.ceil(int(nbPage) / 20.0)
-
-    while nbPage != 0:
-       urlCategory.append(categoryPage.replace("index.html", "") + f"page-{nbPage}.html")
-       nbPage = nbPage - 1
-
-print(urlCategory)
 #Obtain book's page link
-for page in urlCategory:
+for page in pageHome:
      request = requests.get(page)
      soup = BeautifulSoup(request.content, 'html.parser')
      books = soup.find_all("h3")
 
      for book in books:
         cutLink = book.next_element["href"].replace("../../..", "")
+        print(cutLink)
         links.append(urlCatalog + cutLink)
-
-print(len(links))
 
 for link in links:
     #Initate BeautifulSoup for loop
@@ -89,6 +75,7 @@ for link in links:
 
     # Add tableau in data list
     data.append(tableau)
+    print(tableau)
 
 #Initate CSV file
 en_tete = ["product_page_url", "title", "category", "review_rating", "image_url", "product_description", "universal_ product_code (upc)", "price_excluding_tax", "price_including_tax", "number_available"]
