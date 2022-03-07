@@ -1,40 +1,48 @@
-import requests
+import requests, csv, math, os.path
 from bs4 import BeautifulSoup
-import csv
-import math
 
-#Initiate lists
+
+# Initiate lists
 links = []
 data = []
 pageHome = []
+category = []
+en_tete = ["product_page_url", "title", "category", "review_rating", "image_url", "product_description",
+           "universal_ product_code (upc)", "price_excluding_tax", "price_including_tax", "number_available"]
 
-#Initiate BeautifulSoup
+if not os.path.exists("export"):
+    os.mkdir("export")
+
+if not os.path.exists("img"):
+    os.mkdir("img")
+
+# Initiate BeautifulSoup
 urlSite = "https://books.toscrape.com/index.html"
 urlCatalog = "https://books.toscrape.com/catalogue/"
 request = requests.get(urlSite)
 soup = BeautifulSoup(request.content, 'html.parser')
 
 # Obtain category's page number
-nbPage = soup.find("form", class_="form-horizontal").next_element.next_element.next_element.next_element.next_element.string
+nbPage = soup.find("form",
+                   class_="form-horizontal").next_element.next_element.next_element.next_element.next_element.string
 nbPage = math.ceil(int(nbPage) / 20.0)
 
 while nbPage != 0:
     pageHome.append(urlCatalog + f"page-{nbPage}.html")
     nbPage = nbPage - 1
 
-#Obtain book's page link
+# Obtain book's page link
 for page in pageHome:
-     request = requests.get(page)
-     soup = BeautifulSoup(request.content, 'html.parser')
-     books = soup.find_all("h3")
+    request = requests.get(page)
+    soup = BeautifulSoup(request.content, 'html.parser')
+    books = soup.find_all("h3")
 
-     for book in books:
+    for book in books:
         cutLink = book.next_element["href"].replace("../../..", "")
-        print(cutLink)
         links.append(urlCatalog + cutLink)
 
 for link in links:
-    #Initate BeautifulSoup for loop
+    # Initate BeautifulSoup for loop
     page = requests.get(link)
     soup = BeautifulSoup(page.content, 'html.parser')
 
@@ -49,8 +57,10 @@ for link in links:
     tableau.append(title)
 
     # Category
-    category = soup.find("ul", class_="breadcrumb")
-    tableau.append(category.next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.string)
+    category = soup.find("ul", class_="breadcrumb").next_element.next_element.next_element.next_element.next_element.\
+        next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.\
+        next_element.next_element.next_element.string
+    tableau.append(category)
 
     # Stars
     stars = soup.find("p", class_="star-rating")
@@ -73,15 +83,39 @@ for link in links:
     tableau.append(table[3].string)
     tableau.append(table[5].string)
 
-    # Add tableau in data list
-    data.append(tableau)
-    print(tableau)
+    # Export in category file
+    if os.path.exists(f"export\data-{category}.csv"):
+        with open(f"export\data-{category}.csv", 'a', newline='', encoding='utf-8') as fichier_csv:
+            writer = csv.writer(fichier_csv, delimiter=';')
+            writer.writerow(tableau)
 
-#Initate CSV file
-en_tete = ["product_page_url", "title", "category", "review_rating", "image_url", "product_description", "universal_ product_code (upc)", "price_excluding_tax", "price_including_tax", "number_available"]
+    else:
+        with open(f"export\data-{category}.csv", 'w', newline='', encoding='utf-8') as fichier_csv:
+            writer = csv.writer(fichier_csv, delimiter=';')
+            writer.writerow(en_tete)
+            writer.writerow(tableau)
 
-with open('data.csv', 'w', newline='', encoding='utf-8') as fichier_csv:
-   writer = csv.writer(fichier_csv, delimiter=';')
-   writer.writerow(en_tete)
-   for row in data:
-      writer.writerow(row)
+
+
+# with open("data.csv", 'w', newline='', encoding='utf-8') as fichier_csv:
+#     writer = csv.writer(fichier_csv, delimiter=';')
+#     writer.writerow(en_tete)
+#     for row in data:
+#         writer.writerow(row)
+#
+# data = pandas.read_csv("data-.csv", delimiter=";")
+# category = data.category.tolist()
+# category = list(set(category))
+# category.sort()
+#
+# # Create file for each category
+# for cat in category:
+#     with open(f"export\data-{cat}.csv", 'w', newline='', encoding='utf-8') as fichier_csv:
+#         writer = csv.writer(fichier_csv, delimiter=';')
+#         writer.writerow(en_tete)
+
+# # Write each product line on the right file
+# for row in data:
+#     with open(f"data-{row[2]}.csv", 'a', newline='', encoding='utf-8') as fichier_csv:
+#         writer = csv.writer(fichier_csv, delimiter=';')
+#         writer.writerow(row)
