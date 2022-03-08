@@ -1,6 +1,5 @@
-import requests, csv, math, os.path
+import requests, csv, math, os.path, ssl, wget
 from bs4 import BeautifulSoup
-
 
 # Initiate lists
 links = []
@@ -57,8 +56,8 @@ for link in links:
     tableau.append(title)
 
     # Category
-    category = soup.find("ul", class_="breadcrumb").next_element.next_element.next_element.next_element.next_element.\
-        next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element.\
+    category = soup.find("ul", class_="breadcrumb").next_element.next_element.next_element.next_element.next_element. \
+        next_element.next_element.next_element.next_element.next_element.next_element.next_element.next_element. \
         next_element.next_element.next_element.string
     tableau.append(category)
 
@@ -69,8 +68,12 @@ for link in links:
     # image URL
     imgURL = soup.find("img")
     imgURL = imgURL["src"].replace("../..", "")
-    imgURL = urlSite + imgURL
+    imgURL = urlSite.replace("/index.html", "") + imgURL
     tableau.append(imgURL)
+
+    # Download image
+    ssl._create_default_https_context = ssl._create_unverified_context
+    file_name = wget.download(imgURL, ".\img")
 
     # Product Description
     description = soup.find("div", class_="sub-header")
@@ -94,28 +97,3 @@ for link in links:
             writer = csv.writer(fichier_csv, delimiter=';')
             writer.writerow(en_tete)
             writer.writerow(tableau)
-
-
-
-# with open("data.csv", 'w', newline='', encoding='utf-8') as fichier_csv:
-#     writer = csv.writer(fichier_csv, delimiter=';')
-#     writer.writerow(en_tete)
-#     for row in data:
-#         writer.writerow(row)
-#
-# data = pandas.read_csv("data-.csv", delimiter=";")
-# category = data.category.tolist()
-# category = list(set(category))
-# category.sort()
-#
-# # Create file for each category
-# for cat in category:
-#     with open(f"export\data-{cat}.csv", 'w', newline='', encoding='utf-8') as fichier_csv:
-#         writer = csv.writer(fichier_csv, delimiter=';')
-#         writer.writerow(en_tete)
-
-# # Write each product line on the right file
-# for row in data:
-#     with open(f"data-{row[2]}.csv", 'a', newline='', encoding='utf-8') as fichier_csv:
-#         writer = csv.writer(fichier_csv, delimiter=';')
-#         writer.writerow(row)
